@@ -9,7 +9,7 @@ use mesh::Mesh;
 
 use camera::Camera;
 use eframe::{egui::{self, LayerId, Layout, Pos2, Rect, Ui}, egui_glow};
-use egui::Margin;
+use egui::{vec2, Margin, ViewportBuilder};
 use nalgebra::{Rotation3, Vector2, Vector3};
 
 mod shader;
@@ -26,6 +26,7 @@ fn main() {
         multisampling: 4,
         renderer: eframe::Renderer::Glow,
         depth_buffer: 16,
+        viewport: ViewportBuilder::default().with_min_inner_size(vec2(800.0, 600.0)),
         ..Default::default()
     };
     eframe::run_native(
@@ -59,18 +60,22 @@ impl eframe::App for App {
             })
             .show(ctx, |ui| { });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                self.custom_painting(ui);
-            });
+        egui::TopBottomPanel::bottom("BottomPanel")
+            .frame(egui::Frame { inner_margin: 
+                Margin { 
+                    left: (10.0), right: (10.0), top: (8.0), bottom: (8.0) 
+                }, 
+                ..egui::Frame::default()
+            })
+            .show(ctx, |ui| {
             // ui.label(format!("Verts: {}", self.mesh.lock().unwrap().positions.len()));
             // ui.label(format!("Tris: {}", self.mesh.lock().unwrap().indicies.len()/3));
 
-            ui.collapsing("Visual Properties", |ui| {
+            // ui.collapsing("Visual Properties", |ui| {
                 // if ui.toggle_value(&mut self.mesh.lock().unwrap().wireframe, "Wireframe").clicked() {    
                 //     self.mesh.lock().unwrap().load_buffers(&_frame.gl().unwrap());
                 // }
-            });
+            // });
 
             ui.collapsing("Camera Controls", |ui| {
                 ui.horizontal(|ui| {
@@ -83,6 +88,12 @@ impl eframe::App for App {
             });
         });
 
+        
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                self.custom_painting(ui);
+            });
+        });
         
 
         let (r, mut theta, mut phi) = self.angle;
@@ -131,10 +142,12 @@ impl App {
     }
 
     fn custom_painting(&mut self, ui : &mut egui::Ui) {
-        let (rect, response) =
-            ui.allocate_exact_size(egui::vec2(ui.available_width(), ui.available_height()/2.0) , egui::Sense::drag());
+        let (w, h) = (ui.available_width(), ui.available_height());
 
-        self.camera.lock().unwrap().aspect_ratio = ui.available_width() / ui.available_height();
+        let (rect, response) =
+            ui.allocate_exact_size(egui::vec2(w, h) , egui::Sense::drag());
+
+        self.camera.lock().unwrap().aspect_ratio = w / (h);
 
 
         let shader_program = self.shader_program.clone();

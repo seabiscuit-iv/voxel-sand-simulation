@@ -2,6 +2,8 @@
 use crate::mesh::Mesh;
 use nalgebra::{Vector2, Vector3};
 
+static VOXEL_WIDTH : f32 = 1.0;
+
 pub struct VoxelManager {
     voxels: Vec<Vec<Vec<bool>>>,
     length: usize,
@@ -18,8 +20,8 @@ impl VoxelManager {
         }).collect();
 
         voxels[0][0][0] = true;
-        voxels[0][1][0] = true;
-        voxels[0][2][0] = true;
+        // voxels[0][1][0] = true;
+        // voxels[0][2][0] = true;
 
         Self {
             voxels,
@@ -121,6 +123,8 @@ impl VoxelManager {
                 }
             }
         }
+
+        verts.iter_mut().for_each(|x| *x = *x * VOXEL_WIDTH);
 
         let count = verts.len();
 
