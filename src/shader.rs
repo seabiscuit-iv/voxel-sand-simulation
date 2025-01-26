@@ -79,7 +79,7 @@
             }
         }
 
-        pub fn paint(&self, gl: &glow::Context, mesh: &Mesh, camera: &Camera) {
+        pub fn paint(&self, gl: &glow::Context, mesh: &Mesh, bounding_box: &Mesh, camera: &Camera) {
             use glow::HasContext as _;
 
             unsafe {
@@ -95,6 +95,9 @@
                     false, 
                     camera.get_proj_view_mat().as_slice()
                 );
+
+                gl.bind_vertex_array(Some(bounding_box.vertex_array));
+                gl.draw_elements(glow::LINES, bounding_box.index_buffer_size as i32, glow::UNSIGNED_INT, 0);
 
                 gl.bind_vertex_array(Some(mesh.vertex_array));
                 gl.draw_elements(if mesh.wireframe {glow::LINES} else {glow::TRIANGLES}, mesh.index_buffer_size as i32, glow::UNSIGNED_INT, 0);

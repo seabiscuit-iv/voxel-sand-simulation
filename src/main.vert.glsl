@@ -15,6 +15,7 @@ void main() {
     fs_uv = vs_uv;
 
     vec4 pos = vs_pos;
+    pos.y *= -1.0;
 
     pos =  u_ViewProj * pos;
     // pos.z = 0;

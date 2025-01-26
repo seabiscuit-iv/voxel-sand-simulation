@@ -9,7 +9,7 @@ use mesh::Mesh;
 
 use camera::Camera;
 use eframe::{egui::{self, LayerId, Layout, Pos2, Rect, Ui}, egui_glow};
-use egui::{vec2, Margin, ViewportBuilder};
+use egui::{vec2, InputState, Margin, ViewportBuilder};
 use nalgebra::{Rotation3, Vector2, Vector3};
 
 mod shader;
@@ -42,6 +42,7 @@ fn main() {
 struct App {
     voxel_manager: VoxelManager,
     mesh: Arc<Mutex<Mesh>>,
+    bounding_box: Arc<Mutex<Mesh>>,
     camera: Arc<Mutex<Camera>>,
     shader_program: Arc<Mutex<ShaderProgram>>,
     value: f32,
@@ -51,6 +52,10 @@ struct App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.voxel_manager.update();
+        self.mesh = Arc::new(Mutex::new(self.voxel_manager.get_mesh(_frame.gl().unwrap())));
+        self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
+
         egui::TopBottomPanel::top("Top Panel")
             .frame(egui::Frame { inner_margin: 
                 Margin { 
@@ -94,6 +99,12 @@ impl eframe::App for App {
                 self.custom_painting(ui);
             });
         });
+
+
+        if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
+            println!("Space");
+            self.voxel_manager.voxels[0][19][0] = true;
+        }
         
 
         let (r, mut theta, mut phi) = self.angle;
@@ -103,11 +114,10 @@ impl eframe::App for App {
 
         let look = -Vector3::new(phi.cos()* theta.cos(), phi.sin(), phi.cos()*theta.sin()).normalize();
         let right = (Rotation3::new(90.0_f32.to_radians() * Vector3::new(0.0, 1.0, 0.0)) * Vector3::new(look.x, 0.0, look.z)).normalize();
-        
 
         // let look = rot * Vector3::new(0.0, 0.0, 1.0);
         // let right = rot * Vector3::new(1.0, 0.0, 0.0);
-        self.camera.lock().unwrap().pos = -look * r;
+        self.camera.lock().unwrap().pos = (-look * r) + Vector3::new((self.voxel_manager.width as f32 * voxel_manager::VOXEL_WIDTH) / 2.0, -(self.voxel_manager.height as f32 * voxel_manager::VOXEL_WIDTH / 2.0), (self.voxel_manager.length as f32 * voxel_manager::VOXEL_WIDTH / 2.0));
         self.camera.lock().unwrap().right = right;
         self.camera.lock().unwrap().look = look;
         
@@ -125,6 +135,7 @@ impl App {
 
         let voxel_manager = VoxelManager::new(20, 20, 20);
         let mesh = voxel_manager.get_mesh(gl);
+        let bounding_box = voxel_manager.get_bounding_box(gl);
 
         let shader_program = ShaderProgram::new(gl, "src/main.vert.glsl", "src/main.frag.glsl");
         
@@ -133,6 +144,7 @@ impl App {
         Self { 
             voxel_manager, 
             mesh: Arc::new(Mutex::new(mesh)),
+            bounding_box: Arc::new(Mutex::new(bounding_box)),
             shader_program: Arc::new(Mutex::new(shader_program)),
             camera: Arc::new(Mutex::new(camera)),
             value: 0.0,
@@ -152,11 +164,16 @@ impl App {
 
         let shader_program = self.shader_program.clone();
         let mesh = self.mesh.clone();
+        let bounding_box = self.bounding_box.clone();
         let camera = self.camera.clone();
 
         self.angle.2 += response.drag_delta().y * 0.4;
         self.angle.1 += response.drag_delta().x * -0.4;
         self.angle.1 = (self.angle.1 + 360.0) % 360.0;
+        
+        self.angle.0 = self.angle.0.clamp(1.0, 20.0);
+        self.angle.1 = self.angle.1.clamp(0.0, 359.9);
+        self.angle.2 = self.angle.2.clamp(-80.0, 80.0);
 
 
         let value = self.value;
@@ -164,7 +181,7 @@ impl App {
         let callback = egui::PaintCallback {
             rect,
             callback: std::sync::Arc::new(egui_glow::CallbackFn::new(move |_info, painter| {
-                shader_program.lock().unwrap().paint(painter.gl(), &mesh.lock().unwrap(), &camera.lock().unwrap());
+                shader_program.lock().unwrap().paint(painter.gl(), &mesh.lock().unwrap(), &bounding_box.lock().unwrap(),  &camera.lock().unwrap());
             })),
         };
         ui.painter().add(callback);

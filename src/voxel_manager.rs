@@ -2,13 +2,13 @@
 use crate::mesh::Mesh;
 use nalgebra::{Vector2, Vector3};
 
-static VOXEL_WIDTH : f32 = 1.0;
+pub static VOXEL_WIDTH : f32 = 0.2;
 
 pub struct VoxelManager {
-    voxels: Vec<Vec<Vec<bool>>>,
-    length: usize,
-    width: usize,
-    height: usize
+    pub voxels: Vec<Vec<Vec<bool>>>,
+    pub length: usize,
+    pub width: usize,
+    pub height: usize
 }
 
 impl VoxelManager {
@@ -19,15 +19,24 @@ impl VoxelManager {
             }).collect()
         }).collect();
 
-        voxels[0][0][0] = true;
-        // voxels[0][1][0] = true;
-        // voxels[0][2][0] = true;
-
         Self {
             voxels,
             length,
             width,
             height
+        }
+    }
+
+    pub fn update(&mut self) {
+        for x in 0..self.length {
+            for z in 0..self.width {
+                for y in 0..self.height {
+                    if self.voxels[x][y][z] && y != 0 && !self.voxels[x][y-1][z] {
+                        self.voxels[x][y][z] = false;
+                        self.voxels[x][y-1][z] = true;
+                    }
+                }
+            }
         }
     }
 
@@ -41,7 +50,7 @@ impl VoxelManager {
                         continue;
                     }
 
-                    println!("Found a true");
+                    println!("Found a true at {:?}", (x, y, z));
 
                     if (x+1 < self.width && !self.voxels[x+1][y][z]) || x+1 == self.width{
                         let (x, y, z) = (x as f32, y as f32, z as f32);
@@ -133,5 +142,34 @@ impl VoxelManager {
         }).collect();
 
         Mesh::new(gl, verts, (0..count).into_iter().map(|x| x as u32).collect(), uvs, false)
+    }
+
+
+    pub fn get_bounding_box(&self, gl: &eframe::glow::Context ) -> Mesh{
+        let (width, height, length) = (self.width as f32, self.height as f32, self.length as f32);
+
+        let mut verts = vec![
+            Vector3::new(0.0, 0.0, 0.0), Vector3::new(width, 0.0, 0.0),
+            Vector3::new(0.0, 0.0, 0.0), Vector3::new(0.0, height, 0.0),
+            Vector3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 0.0, length),
+            Vector3::new(width, 0.0, 0.0), Vector3::new(width, height, 0.0),
+            Vector3::new(width, 0.0, 0.0), Vector3::new(width, 0.0, length),
+            Vector3::new(0.0, height, 0.0), Vector3::new(width, height, 0.0),
+            Vector3::new(0.0, height, 0.0), Vector3::new(0.0, height, length),
+            Vector3::new(0.0, 0.0, length), Vector3::new(width, 0.0, length),
+            Vector3::new(0.0, 0.0, length), Vector3::new(0.0, height, length),
+            Vector3::new(width, height, length), Vector3::new(0.0, height, length),
+            Vector3::new(width, height, length), Vector3::new(width, 0.0, length),
+            Vector3::new(width, height, length), Vector3::new(width, height, 0.0),
+        ];
+
+        verts.iter_mut().for_each(|x| *x = *x * VOXEL_WIDTH);
+
+
+        let uvs = (0..24).into_iter().map(|x| {
+            Vector2::new(0.0, 0.0)
+        }).collect();
+
+        Mesh::new(gl, verts, (0..24).into_iter().map(|x| x as u32).collect(), uvs, false)
     }
 }

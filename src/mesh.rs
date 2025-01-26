@@ -44,7 +44,7 @@ impl Mesh {
                 // } else {
                 //     colors.push(colors[i as usize - 1]);
                 // }
-                colors.push(Vector4::new(0.6, 0.6, 0.6, 1.0));
+               colors.push(Vector4::new(0.6, 0.6, 0.6, 1.0));
             }
 
             let position_buffer: glow::NativeBuffer = gl.create_buffer().expect("Cannot create position buffer");
