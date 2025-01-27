@@ -50,7 +50,8 @@ impl VoxelManager {
                         continue;
                     }
 
-                    println!("Found a true at {:?}", (x, y, z));
+                    // println!("Found a true at {:?}", (x, y, z));
+
 
                     if (x+1 < self.width && !self.voxels[x+1][y][z]) || x+1 == self.width{
                         let (x, y, z) = (x as f32, y as f32, z as f32);

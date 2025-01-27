@@ -10,7 +10,7 @@ use mesh::Mesh;
 use camera::Camera;
 use eframe::{egui::{self, LayerId, Layout, Pos2, Rect, Ui}, egui_glow};
 use egui::{vec2, InputState, Margin, ViewportBuilder};
-use nalgebra::{Rotation3, Vector2, Vector3};
+use nalgebra::{Rotation3, Vector2, Vector3, Vector4, VectorView3};
 
 mod shader;
 use shader::ShaderProgram;
@@ -52,9 +52,20 @@ struct App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        //update mesh
         self.voxel_manager.update();
         self.mesh = Arc::new(Mutex::new(self.voxel_manager.get_mesh(_frame.gl().unwrap())));
         self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
+
+        // raycast
+        let view_proj_inv = self.camera.lock().unwrap().get_proj_view_mat_inv();
+        let mut ray = view_proj_inv * Vector4::new(0.0, 0.0, -1.0, 1.0);
+        ray = ray / ray.w;
+        let ray = (Vector3::new(ray.x, ray.y, ray.z) - self.camera.lock().unwrap().pos).normalize();
+
+        // let view_proj = self.camera.lock().unwrap().get_proj_view_mat();
+        // let mut ray = view_proj * Vector4::new(0.0, 0.0, 0.0, 1.0);
+        // ray = ray / ray.w;
 
         egui::TopBottomPanel::top("Top Panel")
             .frame(egui::Frame { inner_margin: 
@@ -105,6 +116,10 @@ impl eframe::App for App {
             println!("Space");
             self.voxel_manager.voxels[0][19][0] = true;
         }
+
+        if ctx.input(|i| i.key_pressed(egui::Key::Q)) {
+            println!("{}", ray);
+        }
         
 
         let (r, mut theta, mut phi) = self.angle;
@@ -117,7 +132,8 @@ impl eframe::App for App {
 
         // let look = rot * Vector3::new(0.0, 0.0, 1.0);
         // let right = rot * Vector3::new(1.0, 0.0, 0.0);
-        self.camera.lock().unwrap().pos = (-look * r) + Vector3::new((self.voxel_manager.width as f32 * voxel_manager::VOXEL_WIDTH) / 2.0, -(self.voxel_manager.height as f32 * voxel_manager::VOXEL_WIDTH / 2.0), (self.voxel_manager.length as f32 * voxel_manager::VOXEL_WIDTH / 2.0));
+        // self.camera.lock().unwrap().pos = (-look * r) + Vector3::new((self.voxel_manager.width as f32 * voxel_manager::VOXEL_WIDTH) / 2.0, -(self.voxel_manager.height as f32 * voxel_manager::VOXEL_WIDTH / 2.0), (self.voxel_manager.length as f32 * voxel_manager::VOXEL_WIDTH / 2.0));
+        self.camera.lock().unwrap().pos = -look * r;
         self.camera.lock().unwrap().right = right;
         self.camera.lock().unwrap().look = look;
         

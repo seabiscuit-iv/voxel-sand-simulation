@@ -56,4 +56,27 @@ impl Camera{
 
         persp * (view_orient * view_translate)
     }
+
+    pub fn get_proj_view_mat_inv(&self) -> Matrix4<f32> {
+        let persp = Perspective3::new(self.aspect_ratio, self.fov, 1.0, 100.0).to_homogeneous();
+        let _ortho = Orthographic3::from_fov(self.aspect_ratio, self.fov, 1.0, 100.0).to_homogeneous();
+
+        let up = self.get_up_vec();
+
+        let view_orient = Matrix4::new(
+            self.right.x, self.right.y, self.right.z, 0.0, 
+            up.x, up.y, up.z, 0.0, 
+            -self.look.x, -self.look.y, -self.look.z, 0.0, 
+            0.0, 0.0, 0.0, 1.0
+        );
+
+        let view_translate = Matrix4::new(
+            1.0, 0.0, 0.0, -self.pos.x, 
+            0.0, 1.0, 0.0, -self.pos.y, 
+            0.0, 0.0, 1.0, -self.pos.z, 
+            0.0, 0.0, 0.0, 1.0
+        );
+
+        view_translate.try_inverse().unwrap() * view_orient.try_inverse().unwrap() * persp.try_inverse().unwrap()
+    }
 }
