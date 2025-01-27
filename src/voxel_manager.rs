@@ -1,6 +1,6 @@
 
 use crate::mesh::Mesh;
-use nalgebra::{Vector2, Vector3};
+use nalgebra::{Vector2, Vector3, VectorView3};
 
 pub static VOXEL_WIDTH : f32 = 0.2;
 
@@ -172,5 +172,49 @@ impl VoxelManager {
         }).collect();
 
         Mesh::new(gl, verts, (0..24).into_iter().map(|x| x as u32).collect(), uvs, false)
+    }
+
+    pub fn ray_box_intersection(&self, pos: Vector3<f32>, dir: Vector3<f32>) -> bool {
+        // let pos = Vector3::new(-2.0, 2.0, 2.0);
+        // let dir = Vector3::new(1.0, 0.01, 0.01).normalize();
+
+        let (t0, t1) = (0.8, 100.0);
+        let bounds = [Vector3::new(0.01, 0.01, 0.01), 
+        Vector3::new(1.0 as f32 * VOXEL_WIDTH, 1.0 as f32 * VOXEL_WIDTH, 1.0 as f32 * VOXEL_WIDTH)];
+        
+        let [mut tmin, mut tmax, tymin, tymax, tzmin, tzmax] : [f32; 6];
+        tmin = (bounds[if dir.x >= 0.0 {0} else {1}].x - pos.x) / dir.x;
+        tmax = (bounds[if dir.x >= 0.0 {1} else {0}].x - pos.x) / dir.x;
+
+        tymin = (bounds[if dir.y >= 0.0 {0} else {1}].y - pos.y) / dir.y;
+        tymax = (bounds[if dir.y >= 0.0 {1} else {0}].y - pos.y) / dir.y;
+
+        if tmin > tymax || tymin > tmax {
+            return false;
+        };
+
+        if tymin > tmin {
+            tmin = tymin;
+        };
+
+        if tymax < tmax {
+            tmax = tymax;
+        };
+        
+        tzmin = (bounds[if dir.z >= 0.0 {0} else {1}].z - pos.z) / dir.z;
+        tzmax = (bounds[if dir.z >= 0.0 {1} else {0}].z - pos.z) / dir.z;
+
+        if tmin > tzmax || tzmin > tmax {
+            return false;
+        };
+
+        if tzmin > tmin {
+            tmin = tzmin;
+        };
+        if tzmax < tmax {
+            tmax = tzmax;
+        };
+
+        return tmin < t1 && tmax > t0;
     }
 }

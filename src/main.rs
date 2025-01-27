@@ -9,7 +9,7 @@ use mesh::Mesh;
 
 use camera::Camera;
 use eframe::{egui::{self, LayerId, Layout, Pos2, Rect, Ui}, egui_glow};
-use egui::{vec2, InputState, Margin, ViewportBuilder};
+use egui::{pos2, vec2, InputState, Margin, ViewportBuilder};
 use nalgebra::{Rotation3, Vector2, Vector3, Vector4, VectorView3};
 
 mod shader;
@@ -58,10 +58,6 @@ impl eframe::App for App {
         self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
 
         // raycast
-        let view_proj_inv = self.camera.lock().unwrap().get_proj_view_mat_inv();
-        let mut ray = view_proj_inv * Vector4::new(0.0, 0.0, -1.0, 1.0);
-        ray = ray / ray.w;
-        let ray = (Vector3::new(ray.x, ray.y, ray.z) - self.camera.lock().unwrap().pos).normalize();
 
         // let view_proj = self.camera.lock().unwrap().get_proj_view_mat();
         // let mut ray = view_proj * Vector4::new(0.0, 0.0, 0.0, 1.0);
@@ -95,7 +91,7 @@ impl eframe::App for App {
 
             ui.collapsing("Camera Controls", |ui| {
                 ui.horizontal(|ui| {
-                    ui.add(egui::DragValue::new(&mut self.angle.0).range(RangeInclusive::new(1.0, 20.0)));
+                    ui.add(egui::DragValue::new(&mut self.angle.0).range(RangeInclusive::new(2.0, 20.0)));
                     ui.add(egui::DragValue::new(&mut self.angle.1).range(RangeInclusive::new(0.0, 360.0)));
                     ui.add(egui::DragValue::new(&mut self.angle.2).range(RangeInclusive::new(-80.0, 80.0)));
                 });
@@ -104,10 +100,11 @@ impl eframe::App for App {
             });
         });
 
-        
+        let mut rect: Rect = Rect::from_pos(pos2(0.0, 0.0));
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+            let _bounds = egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 self.custom_painting(ui);
+                rect = ui.max_rect();
             });
         });
 
@@ -117,7 +114,18 @@ impl eframe::App for App {
             self.voxel_manager.voxels[0][19][0] = true;
         }
 
-        if ctx.input(|i| i.key_pressed(egui::Key::Q)) {
+        if ctx.input(|i| i.pointer.button_clicked(egui::PointerButton::Primary) && rect.contains(i.pointer.latest_pos().unwrap())) {
+            let norms = ctx.pointer_latest_pos().unwrap();
+            let norms = ((norms.x / rect.width()) * 2.0 - 1.0, (norms.y / rect.height()) * 2.0 - 1.0);
+            
+            let view_proj_inv = self.camera.lock().unwrap().get_proj_view_mat_inv();
+            let mut ray = view_proj_inv * Vector4::new(norms.0, norms.1, -1.0, 1.0);
+            ray = ray / ray.w;
+            let ray = (Vector3::new(ray.x, ray.y, ray.z) - self.camera.lock().unwrap().pos).normalize();
+
+            let hit = self.voxel_manager.ray_box_intersection(self.camera.lock().unwrap().pos, ray);
+
+            println!("{}", hit);
             println!("{}", ray);
         }
         
