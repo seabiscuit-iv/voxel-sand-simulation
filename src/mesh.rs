@@ -32,12 +32,12 @@ impl Mesh {
             
             let mut colors: Vec<Vector4<f32>> = colors.iter().map(|x| Vector4::new(x.r() as f32 / 255.0, x.g() as f32 / 255.0, x.b() as f32 / 255.0, 1.0)).collect();
 
-            let position_buffer: glow::NativeBuffer = gl.create_buffer().expect("Cannot create position buffer");
+            let position_buffer = gl.create_buffer().expect("Cannot create position buffer");
             let color_buffer = gl.create_buffer().expect("Cannot create color buffer");
             let uv_buffer = gl.create_buffer().expect("Cannot create uv buffer");
             let index_buffer = gl.create_buffer().expect("Cannot create index buffer");
 
-            let vertex_array: glow::NativeVertexArray = gl.create_vertex_array().expect("Cannot create vertex array");
+            let vertex_array = gl.create_vertex_array().expect("Cannot create vertex array");
 
             let mut x = Self {
                 positions: positions.clone(), 
