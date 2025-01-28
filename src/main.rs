@@ -93,7 +93,7 @@ impl eframe::App for App {
 
             ui.collapsing("Camera Controls", |ui| {
                 ui.horizontal(|ui| {
-                    ui.add(egui::DragValue::new(&mut self.angle.0).range(RangeInclusive::new(2.0, 20.0)));
+                    ui.add(egui::DragValue::new(&mut self.angle.0).range(RangeInclusive::new(2.0, 50.0)));
                     ui.add(egui::DragValue::new(&mut self.angle.1).range(RangeInclusive::new(0.0, 360.0)));
                     ui.add(egui::DragValue::new(&mut self.angle.2).range(RangeInclusive::new(-80.0, 80.0)));
                 });
@@ -111,11 +111,11 @@ impl eframe::App for App {
         });
 
 
-        if ctx.input(|i| i.pointer.button_clicked(egui::PointerButton::Primary) && rect.contains(i.pointer.latest_pos().unwrap())) {
+        if ctx.input(|i| i.pointer.button_down(egui::PointerButton::Primary) && rect.contains(i.pointer.latest_pos().unwrap()) && !i.modifiers.alt && !i.modifiers.shift) {
             // println!("Space");
             match self.target {
                 Some((x, z)) => {
-                    self.voxel_manager.voxels[x][19][z] = true;
+                    self.voxel_manager.voxels[x][49][z] = true;
                 },
                 None => ()
             }
@@ -162,8 +162,8 @@ impl eframe::App for App {
 
         // let look = rot * Vector3::new(0.0, 0.0, 1.0);
         // let right = rot * Vector3::new(1.0, 0.0, 0.0);
-        // self.camera.lock().unwrap().pos = (-look * r) + Vector3::new((self.voxel_manager.width as f32 * voxel_manager::VOXEL_WIDTH) / 2.0, -(self.voxel_manager.height as f32 * voxel_manager::VOXEL_WIDTH / 2.0), (self.voxel_manager.length as f32 * voxel_manager::VOXEL_WIDTH / 2.0));
-        self.camera.lock().unwrap().pos = -look * r;
+        self.camera.lock().unwrap().pos = (-look * r) + Vector3::new((self.voxel_manager.width as f32 * voxel_manager::VOXEL_WIDTH) / 2.0, -(self.voxel_manager.height as f32 * voxel_manager::VOXEL_WIDTH / 2.0), (self.voxel_manager.length as f32 * voxel_manager::VOXEL_WIDTH / 2.0));
+        // self.camera.lock().unwrap().pos = -look * r;
         self.camera.lock().unwrap().right = right;
         self.camera.lock().unwrap().look = look;
         
@@ -179,7 +179,7 @@ impl App {
             .as_ref()
             .expect("You need to run eframe with the glow backend");
 
-        let voxel_manager = VoxelManager::new(20, 20, 20);
+        let voxel_manager = VoxelManager::new(50, 50, 50);
         let mesh = voxel_manager.get_mesh(gl);
         let bounding_box = voxel_manager.get_bounding_box(gl);
 
@@ -216,13 +216,15 @@ impl App {
         let bounding_box = self.bounding_box.clone();
         let camera = self.camera.clone();
 
-        self.angle.2 += response.drag_delta().y * 0.4;
-        self.angle.1 += response.drag_delta().x * -0.4;
-        self.angle.1 = (self.angle.1 + 360.0) % 360.0;
-        
-        self.angle.0 = self.angle.0.clamp(1.0, 20.0);
-        self.angle.1 = self.angle.1.clamp(0.0, 359.9);
-        self.angle.2 = self.angle.2.clamp(-80.0, 80.0);
+        if ui.ctx().input(|i| i.modifiers.shift || i.modifiers.alt) {     
+            self.angle.2 += response.drag_delta().y * 0.4;
+            self.angle.1 += response.drag_delta().x * -0.4;
+            self.angle.1 = (self.angle.1 + 360.0) % 360.0;
+            
+            self.angle.0 = self.angle.0.clamp(1.0, 50.0);
+            self.angle.1 = self.angle.1.clamp(0.0, 359.9);
+            self.angle.2 = self.angle.2.clamp(-80.0, 80.0);
+        }
 
 
         let value = self.value;

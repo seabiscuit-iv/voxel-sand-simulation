@@ -165,10 +165,10 @@ impl VoxelManager {
 
         for x in 0..self.width {
             for z in 0..self.length {
-                match self.ray_box_intersection(pos, dir, x as u32, -19, z as u32) {
+                match self.ray_box_intersection(pos, dir, x as u32, -49, z as u32) {
                     Some(depth) => {
                         if depth < mindepth {
-                            (minx, miny, minz, mindepth) = (x as u32, 19, z as u32, depth)
+                            (minx, miny, minz, mindepth) = (x as u32, 49, z as u32, depth)
                         };
                     },
                     None => (),
