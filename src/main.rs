@@ -58,7 +58,7 @@ impl eframe::App for App {
         //update mesh
         self.voxel_manager.update();
         self.mesh = Arc::new(Mutex::new(self.voxel_manager.get_mesh(_frame.gl().unwrap())));
-        self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
+        // self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
 
         // raycast
 
@@ -116,7 +116,22 @@ impl eframe::App for App {
             // println!("Space");
             match self.target {
                 Some((x, z)) => {
-                    self.voxel_manager.voxels[x][29][z] = Some(VoxelManager::colors()[random::<usize>() % VoxelManager::colors().len()]);
+                    for dx in -2_i32..=2_i32 {
+                        for dz in -2_i32..=2_i32 {
+                            if dx.abs() == 2 && dz.abs() == 2 {
+                                continue;
+                            }
+
+                            let tgt = (x as i32 + dx, 29, z as i32 + dz);
+
+                            if tgt.0 < 0 || tgt.0 >= 50 || tgt.2 < 0 || tgt.2 >= 50 {
+                                continue;
+                            }
+
+                            self.voxel_manager.voxels[tgt.0 as usize][29][tgt.2 as usize] = Some(VoxelManager::colors()[random::<usize>() % VoxelManager::colors().len()]);
+                        }
+                    }
+
                 },
                 None => ()
             }
