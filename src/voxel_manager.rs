@@ -1,5 +1,7 @@
 use crate::mesh::Mesh;
 use nalgebra::{Vector2, Vector3, VectorView3};
+use rand::thread_rng;
+use rand::seq::SliceRandom;
 
 pub static VOXEL_WIDTH : f32 = 0.2;
 
@@ -12,7 +14,7 @@ pub struct VoxelManager {
 
 impl VoxelManager {
     pub fn new(length: usize, width: usize, height: usize) -> Self{
-        let mut voxels : Vec<Vec<Vec<bool>>> = (0..length).into_iter().map(|x| {
+        let voxels : Vec<Vec<Vec<bool>>> = (0..length).into_iter().map(|x| {
             (0..width).into_iter().map(|y| {
                 (0..height).map(|z| false).collect()
             }).collect()
@@ -27,12 +29,42 @@ impl VoxelManager {
     }
 
     pub fn update(&mut self) {
-        for x in 0..self.length {
-            for z in 0..self.width {
-                for y in 0..self.height {
-                    if self.voxels[x][y][z] && y != 0 && !self.voxels[x][y-1][z] {
+        for y in 0..self.height {
+            for x in 0..self.length {
+                for z in 0..self.width {
+                    if !self.voxels[x][y][z] {
+                        continue;
+                    }
+
+                    if y != 0 && !self.voxels[x][y-1][z] {
                         self.voxels[x][y][z] = false;
-                        self.voxels[x][y-1][z] = true;
+                        self.voxels[x][y-1][z] = true;  
+                    } else {
+                        let mut offsets: Vec<(i32, i32, i32)> = vec![
+                            (1, -1, 0),
+                            (-1, -1, 0),
+                            (0, -1, 1),
+                            (0, -1, -1),
+                            (1, -1, 1),
+                            (1, -1, -1),
+                            (-1, -1, 1),
+                            (-1, -1, -1),
+                        ];
+
+                        offsets.shuffle(&mut thread_rng());
+                        
+                        for offset in offsets.iter() {
+                            let target: (i32, i32, i32) = (x as i32 + offset.0, y as i32 + offset.1, z as i32 + offset.2);
+                            if target.0 < 0 || target.0 >= self.width as i32 ||  target.1 < 0 || target.1 >= self.height as i32 || target.2 < 0 || target.2 >= self.height as i32 {
+                                continue;
+                            }
+
+                            if !self.voxels[target.0 as usize][target.1 as usize][target.2 as usize] {
+                                self.voxels[x][y][z] = false;
+                                self.voxels[target.0 as usize][target.1 as usize][target.2 as usize] = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }

@@ -1,5 +1,6 @@
 #version 330 core
 
+in vec3 fs_pos;
 in vec4 fs_col;
 in vec2 fs_uv;
 out vec4 frag_color;

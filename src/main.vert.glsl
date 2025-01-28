@@ -6,6 +6,7 @@ layout(location = 2) in vec2 vs_uv;
 
 out vec4 fs_col;
 out vec2 fs_uv; 
+out vec3 fs_pos;
 
 uniform mat4 u_ViewProj;
 
@@ -22,5 +23,6 @@ void main() {
     // pos /= pos.w;
 
     gl_Position = pos;
+    fs_pos = vec3(pos);
     // gl_Position = vs_pos;
 }
