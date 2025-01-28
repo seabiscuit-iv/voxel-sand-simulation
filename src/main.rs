@@ -2,13 +2,15 @@
 use core::f32;
 use std::{ops::RangeInclusive, sync::{Arc, Mutex}};
 
+
 mod mesh;
 mod camera;
 
+use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use mesh::Mesh;
 
 use camera::Camera;
-use eframe::{egui::{self, Rect}, egui_glow};
+use eframe::{egui::{self, Color32, Rect}, egui_glow};
 use egui::{pos2, vec2, InputState, Margin, ViewportBuilder};
 use nalgebra::{Rotation3, Vector2, Vector3, Vector4, VectorView3};
 
@@ -109,24 +111,17 @@ struct App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         //update mesh
-        self.voxel_manager.update();
-        self.mesh = Arc::new(Mutex::new(self.voxel_manager.get_mesh(_frame.gl().unwrap())));
+        let update = self.voxel_manager.update();
+        if update {
+            self.mesh = Arc::new(Mutex::new(self.voxel_manager.get_mesh(_frame.gl().unwrap())));
+        }
         // self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
 
         // raycast
 
         // let view_proj = self.camera.lock().unwrap().get_proj_view_mat();
         // let mut ray = view_proj * Vector4::new(0.0, 0.0, 0.0, 1.0);
-        // ray = ray / ray.w;
-
-        egui::TopBottomPanel::top("Top Panel")
-            .frame(egui::Frame { inner_margin: 
-                Margin { 
-                    left: (10.0), right: (10.0), top: (10.0), bottom: (10.0) 
-                }, 
-                ..egui::Frame::default()
-            })
-            .show(ctx, |ui| { });
+        // ray = ray / ray.w
 
         egui::TopBottomPanel::bottom("BottomPanel")
             .frame(egui::Frame { inner_margin: 
@@ -145,6 +140,25 @@ impl eframe::App for App {
                 // }
             // });
 
+            ui.collapsing("Help", |ui| {
+
+                let markdown_text =
+                r"
+## Controls
+**Hold along the top face to add sand**  
+*alt/shift + drag*  **to orbit**
+
+## Voxel Sand Simulation
+A simple 3D version of the [pixel sand simulation](https://www.saahil-gupta.com/sand/) built on the same techniques. Built with OpenGL, Rust, and glow. Find the code on [Github](https://github.com/seabiscuit-iv/voxel-sand-simulation).
+
+Note that 3D cellular automata is very inefficient and does not scale well, especially on WebGL. The dimensions of the box have been set to 50x50x30, but the application will likely slow down when reaching a large number of voxels. For best performance, please use a browser like Chrome or Edge.
+
+Made by [Saahil Gupta](https://www.saahil-gupta.com)   
+                ";
+
+                let mut cache = CommonMarkCache::default();
+                CommonMarkViewer::new().show(ui, &mut cache, &markdown_text);
+            });
             ui.collapsing("Camera Controls", |ui| {
                 ui.horizontal(|ui| {
                     ui.add(egui::DragValue::new(&mut self.angle.0).range(RangeInclusive::new(2.0, 50.0)));

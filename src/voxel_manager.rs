@@ -41,7 +41,9 @@ impl VoxelManager {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self) -> bool {
+        let mut changed = false;
+
         for y in 0..self.height {
             for x in 0..self.width {
                 for z in 0..self.length {
@@ -53,6 +55,7 @@ impl VoxelManager {
                         let color  = self.voxels[x][y][z].unwrap();
                         self.voxels[x][y][z] = None;
                         self.voxels[x][y-1][z] = Some(color);  
+                        changed = true;
                     } else {
                         let mut offsets: Vec<(i32, i32, i32)> = vec![
                             (1, -1, 0),
@@ -77,6 +80,7 @@ impl VoxelManager {
                                 let color = self.voxels[x][y][z].unwrap();
                                 self.voxels[x][y][z] = None;
                                 self.voxels[target.0 as usize][target.1 as usize][target.2 as usize] = Some(color);
+                                changed = true;
                                 break;
                             }
                         }
@@ -84,6 +88,7 @@ impl VoxelManager {
                 }
             }
         }
+        changed
     }
 
     pub fn get_mesh(&self, gl: &eframe::glow::Context ) -> Mesh{
