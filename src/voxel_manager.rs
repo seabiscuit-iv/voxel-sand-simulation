@@ -1,22 +1,35 @@
 use crate::mesh::Mesh;
-use nalgebra::{Vector2, Vector3, VectorView3};
+use egui::Color32;
+use nalgebra::{Vector2, Vector3, Vector4, VectorView3};
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 
 pub static VOXEL_WIDTH : f32 = 0.2;
 
 pub struct VoxelManager {
-    pub voxels: Vec<Vec<Vec<bool>>>,
+    pub voxels: Vec<Vec<Vec<Option<Color32>>>>,
     pub length: usize,
     pub width: usize,
     pub height: usize
 }
 
 impl VoxelManager {
+
+    pub fn colors() -> Vec<Color32> {
+        vec![
+            Color32::from_hex("#ffe0ab").unwrap(),
+            Color32::from_hex("#f3ce93").unwrap(), 
+            Color32::from_hex("#d6b588").unwrap(), 
+            Color32::from_hex("#ffe0ab").unwrap(), 
+            Color32::from_hex("#dab984").unwrap(),
+        ]
+    }
+    
+
     pub fn new(length: usize, width: usize, height: usize) -> Self{
-        let voxels : Vec<Vec<Vec<bool>>> = (0..length).into_iter().map(|x| {
-            (0..width).into_iter().map(|y| {
-                (0..height).map(|z| false).collect()
+        let voxels : Vec<Vec<Vec<Option<Color32>>>> = (0..width).into_iter().map(|x| {
+            (0..height).into_iter().map(|y| {
+                (0..length).map(|z| None).collect()
             }).collect()
         }).collect();
 
@@ -30,15 +43,16 @@ impl VoxelManager {
 
     pub fn update(&mut self) {
         for y in 0..self.height {
-            for x in 0..self.length {
-                for z in 0..self.width {
-                    if !self.voxels[x][y][z] {
+            for x in 0..self.width {
+                for z in 0..self.length {
+                    if self.voxels[x][y][z].is_none() {
                         continue;
                     }
 
-                    if y != 0 && !self.voxels[x][y-1][z] {
-                        self.voxels[x][y][z] = false;
-                        self.voxels[x][y-1][z] = true;  
+                    if y != 0 && self.voxels[x][y-1][z].is_none() {
+                        let color  = self.voxels[x][y][z].unwrap();
+                        self.voxels[x][y][z] = None;
+                        self.voxels[x][y-1][z] = Some(color);  
                     } else {
                         let mut offsets: Vec<(i32, i32, i32)> = vec![
                             (1, -1, 0),
@@ -55,13 +69,14 @@ impl VoxelManager {
                         
                         for offset in offsets.iter() {
                             let target: (i32, i32, i32) = (x as i32 + offset.0, y as i32 + offset.1, z as i32 + offset.2);
-                            if target.0 < 0 || target.0 >= self.width as i32 ||  target.1 < 0 || target.1 >= self.height as i32 || target.2 < 0 || target.2 >= self.height as i32 {
+                            if target.0 < 0 || target.0 >= self.width as i32 ||  target.1 < 0 || target.1 >= self.height as i32 || target.2 < 0 || target.2 >= self.length as i32 {
                                 continue;
                             }
 
-                            if !self.voxels[target.0 as usize][target.1 as usize][target.2 as usize] {
-                                self.voxels[x][y][z] = false;
-                                self.voxels[target.0 as usize][target.1 as usize][target.2 as usize] = true;
+                            if self.voxels[target.0 as usize][target.1 as usize][target.2 as usize].is_none() {
+                                let color = self.voxels[x][y][z].unwrap();
+                                self.voxels[x][y][z] = None;
+                                self.voxels[target.0 as usize][target.1 as usize][target.2 as usize] = Some(color);
                                 break;
                             }
                         }
@@ -73,18 +88,20 @@ impl VoxelManager {
 
     pub fn get_mesh(&self, gl: &eframe::glow::Context ) -> Mesh{
         let mut verts: Vec<Vector3<f32>> = Vec::new();
+        let mut colors: Vec<Color32> = Vec::new();
 
-        for x in 0..self.length {
-            for z in 0..self.width {
+        for x in 0..self.width {
+            for z in 0..self.length {
                 for y in 0..self.height {
-                    if !self.voxels[x][y][z] {
+                    if self.voxels[x][y][z].is_none() {
                         continue;
                     }
 
+                    let color = self.voxels[x][y][z].unwrap();
                     // println!("Found a true at {:?}", (x, y, z));
 
 
-                    if (x+1 < self.width && !self.voxels[x+1][y][z]) || x+1 == self.width{
+                    if (x+1 < self.width && self.voxels[x+1][y][z].is_none()) || x+1 == self.width{
                         let (x, y, z) = (x as f32, y as f32, z as f32);
                         verts.append(&mut vec![
                             Vector3::new(x + 1.0, y, z),
@@ -95,9 +112,10 @@ impl VoxelManager {
                             Vector3::new(x + 1.0, y + 1.0, z + 1.0),
                             Vector3::new(x + 1.0, y, z + 1.0),
                         ]);
+                        (0..6).for_each(|_| colors.push(color));
                     }
 
-                    if (x > 0 && !self.voxels[x-1][y][z]) || x == 0 {
+                    if (x > 0 && self.voxels[x-1][y][z].is_none()) || x == 0 {
                         let (x, y, z) = (x as f32, y as f32, z as f32);
                         verts.append(&mut vec![
                             Vector3::new(x, y, z),
@@ -108,9 +126,10 @@ impl VoxelManager {
                             Vector3::new(x, y + 1.0, z + 1.0),
                             Vector3::new(x, y, z + 1.0),
                         ]);
+                        (0..6).for_each(|_| colors.push(color));
                     }
 
-                    if (y > 0 && !self.voxels[x][y-1][z]) || y == 0 {
+                    if (y > 0 && self.voxels[x][y-1][z].is_none()) || y == 0 {
                         let (x, y, z) = (x as f32, y as f32, z as f32);
                         verts.append(&mut vec![
                             Vector3::new(x, y, z),
@@ -121,9 +140,10 @@ impl VoxelManager {
                             Vector3::new(x + 1.0, y, z + 1.0),
                             Vector3::new(x, y, z + 1.0),
                         ]);
+                        (0..6).for_each(|_| colors.push(color));
                     }
 
-                    if (y+1 < self.height && !self.voxels[x][y+1][z]) || y+1 == self.height{
+                    if (y+1 < self.height && self.voxels[x][y+1][z].is_none()) || y+1 == self.height{
                         let (x, y, z) = (x as f32, y as f32, z as f32);
                         verts.append(&mut vec![
                             Vector3::new(x, y + 1.0, z),
@@ -134,9 +154,10 @@ impl VoxelManager {
                             Vector3::new(x + 1.0, y + 1.0, z + 1.0),
                             Vector3::new(x, y + 1.0, z + 1.0),
                         ]);
+                        (0..6).for_each(|_| colors.push(color));
                     }
 
-                    if (z+1 < self.length && !self.voxels[x][y][z+1]) || z+1 == self.length{
+                    if (z+1 < self.length && self.voxels[x][y][z+1].is_none()) || z+1 == self.length{
                         let (x, y, z) = (x as f32, y as f32, z as f32);
                         verts.append(&mut vec![
                             Vector3::new(x, y, z + 1.0),
@@ -147,9 +168,10 @@ impl VoxelManager {
                             Vector3::new(x + 1.0, y + 1.0, z + 1.0),
                             Vector3::new(x + 1.0, y, z + 1.0),
                         ]);
+                        (0..6).for_each(|_| colors.push(color));
                     }
 
-                    if (z > 0 && !self.voxels[x][y][z-1]) || z == 0 {
+                    if (z > 0 && self.voxels[x][y][z-1].is_none()) || z == 0 {
                         let (x, y, z) = (x as f32, y as f32, z as f32);
                         verts.append(&mut vec![
                             Vector3::new(x, y, z),
@@ -160,6 +182,7 @@ impl VoxelManager {
                             Vector3::new(x + 1.0, y + 1.0, z),
                             Vector3::new(x + 1.0, y, z),
                         ]);
+                        (0..6).for_each(|_| colors.push(color));
                     }
                 }
             }
@@ -173,14 +196,14 @@ impl VoxelManager {
             Vector2::new(0.0, 0.0)
         }).collect();
 
-        Mesh::new(gl, verts, (0..count).into_iter().map(|x| x as u32).collect(), uvs, false)
+        Mesh::new(gl, verts, (0..count).into_iter().map(|x| x as u32).collect(), uvs, false, colors)
     }
 
 
     pub fn get_bounding_box(&self, gl: &eframe::glow::Context ) -> Mesh{
         let (width, height, length) = (self.width as f32, self.height as f32, self.length as f32);
 
-        let mut verts = cube_wireframe_from_points(Vector3::new(0.0, 0.0, 0.0), Vector3::new(width, length, height));
+        let mut verts = cube_wireframe_from_points(Vector3::new(0.0, 0.0, 0.0), Vector3::new(width, height, length));
 
         verts.iter_mut().for_each(|x| *x = *x * VOXEL_WIDTH);
 
@@ -189,7 +212,7 @@ impl VoxelManager {
             Vector2::new(0.0, 0.0)
         }).collect();
 
-        Mesh::new(gl, verts, (0..24).into_iter().map(|x| x as u32).collect(), uvs, false)
+        Mesh::new(gl, verts, (0..24).into_iter().map(|x| x as u32).collect(), uvs, false, (0..24).into_iter().map(|_| Color32::WHITE).collect())
     }
 
     pub fn get_ghost_mesh(&self, gl: &eframe::glow::Context, pos: Vector3<f32>, dir: Vector3<f32>) -> (Option<Mesh>, Option<(usize, usize)>) {
@@ -197,10 +220,10 @@ impl VoxelManager {
 
         for x in 0..self.width {
             for z in 0..self.length {
-                match self.ray_box_intersection(pos, dir, x as u32, -49, z as u32) {
+                match self.ray_box_intersection(pos, dir, x as u32, -29, z as u32) {
                     Some(depth) => {
                         if depth < mindepth {
-                            (minx, miny, minz, mindepth) = (x as u32, 49, z as u32, depth)
+                            (minx, miny, minz, mindepth) = (x as u32, 29, z as u32, depth)
                         };
                     },
                     None => (),
@@ -220,7 +243,7 @@ impl VoxelManager {
             Vector2::new(0.0, 0.0)
         }).collect();
 
-        (Some(Mesh::new(gl, verts, (0..36).into_iter().map(|x| x as u32).collect(), uvs, false)), Some((x as usize, z as usize)))        // }
+        (Some(Mesh::new(gl, verts, (0..36).into_iter().map(|x| x as u32).collect(), uvs, false, (0..36).into_iter().map(|_| Color32::WHITE).collect())), Some((x as usize, z as usize)))        // }
     }
 
     pub fn ray_box_intersection(&self, pos: Vector3<f32>, dir: Vector3<f32>, x: u32, y: i32, z: u32) -> Option<f32> {

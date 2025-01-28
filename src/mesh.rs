@@ -1,4 +1,5 @@
 use eframe::glow::{self, HasContext as _};
+use egui::Color32;
 use nalgebra::{Vector2, Vector3, Vector4};
 use rand::random;
 
@@ -21,7 +22,7 @@ pub struct Mesh {
 
 
 impl Mesh {
-    pub fn new(gl: &glow::Context, positions: Vec<Vector3<f32>>, indicies: Vec<u32>, uvs: Vec<Vector2<f32>>, wireframe: bool) -> Self {
+    pub fn new(gl: &glow::Context, positions: Vec<Vector3<f32>>, indicies: Vec<u32>, uvs: Vec<Vector2<f32>>, wireframe: bool, colors: Vec<Color32>) -> Self {
         use glow::HasContext as _;
 
         unsafe {
@@ -29,24 +30,7 @@ impl Mesh {
 
             let mut uvs = uvs.clone();
             
-            let mut colors: Vec<Vector4<f32>> = Vec::new();
-
-            for (i, pos) in positions.iter().enumerate() {
-                // let i = i as f32;
-
-                // if i as i32 % 3 == 0 {
-                //     let col = Vector3::new(
-                //         rand::random::<f32>().fract(),
-                //         rand::random::<f32>().fract(),
-                //         rand::random::<f32>().fract()
-                //     );
-                //     let col = col.push(1.0);
-                //     colors.push(col);
-                // } else {
-                //     colors.push(colors[i as usize - 1]);
-                // }
-               colors.push(Vector4::new(0.6, 0.6, 0.6, 1.0));
-            }
+            let mut colors: Vec<Vector4<f32>> = colors.iter().map(|x| Vector4::new(x.r() as f32 / 255.0, x.g() as f32 / 255.0, x.b() as f32 / 255.0, 1.0)).collect();
 
             let position_buffer: glow::NativeBuffer = gl.create_buffer().expect("Cannot create position buffer");
             let color_buffer = gl.create_buffer().expect("Cannot create color buffer");

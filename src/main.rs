@@ -13,6 +13,7 @@ use egui::{pos2, vec2, InputState, Margin, ViewportBuilder};
 use nalgebra::{Rotation3, Vector2, Vector3, Vector4, VectorView3};
 
 mod shader;
+use rand::random;
 use shader::ShaderProgram;
 use voxel_manager::VoxelManager;
 
@@ -115,7 +116,7 @@ impl eframe::App for App {
             // println!("Space");
             match self.target {
                 Some((x, z)) => {
-                    self.voxel_manager.voxels[x][49][z] = true;
+                    self.voxel_manager.voxels[x][29][z] = Some(VoxelManager::colors()[random::<usize>() % VoxelManager::colors().len()]);
                 },
                 None => ()
             }
@@ -179,7 +180,7 @@ impl App {
             .as_ref()
             .expect("You need to run eframe with the glow backend");
 
-        let voxel_manager = VoxelManager::new(50, 50, 50);
+        let voxel_manager = VoxelManager::new(50, 50, 30);
         let mesh = voxel_manager.get_mesh(gl);
         let bounding_box = voxel_manager.get_bounding_box(gl);
 
@@ -196,7 +197,7 @@ impl App {
             shader_program: Arc::new(Mutex::new(shader_program)),
             camera: Arc::new(Mutex::new(camera)),
             value: 0.0,
-            angle: (10.0, 0.0, 15.0),
+            angle: (15.0, 0.0, 15.0),
             speed: 3.0
         }
     }
