@@ -108,17 +108,17 @@ impl ShaderProgram {
                 camera.get_proj_view_mat().as_slice()
             );
 
-            gl.bind_vertex_array(Some(bounding_box.vertex_array));
-            gl.draw_elements(glow::LINES, bounding_box.index_buffer_size as i32, glow::UNSIGNED_INT, 0);
+            // gl.bind_vertex_array(Some(bounding_box.vertex_array));
+            // gl.draw_elements(glow::LINES, bounding_box.index_buffer_size as i32, glow::UNSIGNED_INT, 0);
             
-            match ghost {
-                Some(x) => {
-                    // println!("Painting Ghost");
-                    gl.bind_vertex_array(Some(x.vertex_array));
-                    gl.draw_elements(glow::TRIANGLES, x.index_buffer_size as i32, glow::UNSIGNED_INT, 0);        
-                },
-                None => ()
-            }
+            // match ghost {
+            //     Some(x) => {
+            //         // println!("Painting Ghost");
+            //         gl.bind_vertex_array(Some(x.vertex_array));
+            //         gl.draw_elements(glow::TRIANGLES, x.index_buffer_size as i32, glow::UNSIGNED_INT, 0);        
+            //     },
+            //     None => ()
+            // }
 
 
             gl.bind_vertex_array(Some(mesh.vertex_array));

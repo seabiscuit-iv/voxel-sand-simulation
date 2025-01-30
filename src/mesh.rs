@@ -10,7 +10,7 @@ pub struct Mesh {
     pub positions: Vec<Vector3<f32>>,
     pub indicies : Vec<u32>,
     uvs: Vec<Vector2<f32>>,
-    colors: Vec<Vector4<f32>>,
+    pub colors: Vec<Vector4<f32>>,
     pub vertex_array: glow::VertexArray,
     pub position_buffer: glow::Buffer,
     pub color_buffer: glow::Buffer,
@@ -29,7 +29,7 @@ impl Mesh {
             let vert_count = positions.len();
 
             let mut uvs = uvs.clone();
-            
+
             let mut colors: Vec<Vector4<f32>> = colors.iter().map(|x| Vector4::new(x.r() as f32 / 255.0, x.g() as f32 / 255.0, x.b() as f32 / 255.0, 1.0)).collect();
 
             let position_buffer = gl.create_buffer().expect("Cannot create position buffer");
@@ -109,6 +109,34 @@ impl Mesh {
             self.index_buffer_size = (if self.wireframe {2} else {1})*self.indicies.len() as u32;
         }
     }
+
+
+    pub fn reload_pos_vao(&mut self, gl: &glow::Context, pos: Vec<Vector3<f32>> ) {
+        self.positions = pos;
+
+        unsafe {
+            // gl.clear_buffer_f32_slice(target, draw_buffer, values);
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.position_buffer));
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, bytemuck::cast_slice(&self.positions.iter().flat_map(|x| {
+                vec![x.x, x.y, x.z, 1.0].into_iter()
+            }).collect::<Vec<f32>>()), glow::STATIC_DRAW);
+            gl.vertex_attrib_pointer_f32(0, 4, glow::FLOAT, false, 0, 0);  // Position (2 floats per vertex)
+            gl.enable_vertex_attrib_array(0);  // Enable position attribute
+
+            // gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.color_buffer));
+            // gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, bytemuck::cast_slice(&self.colors.iter().flat_map(|x| {
+            //     if !self.wireframe {
+            //         vec![x.x, x.y, x.z, x.w].into_iter()
+            //     } else {
+            //         vec![1.0, 1.0, 1.0, 1.0].into_iter()
+            //     }
+                
+            // }).collect::<Vec<f32>>()), glow::STATIC_DRAW);
+            // gl.vertex_attrib_pointer_f32(1, 4, glow::FLOAT, false, 0, 0);  // Color (4 floats per vertex)
+            // gl.enable_vertex_attrib_array(1);  // Enable color attribute
+        }
+    }
+
 
     pub fn destroy(&self, gl: &glow::Context) {
         use glow::HasContext as _;

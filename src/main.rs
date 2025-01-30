@@ -97,7 +97,6 @@ fn main() {
 
 struct App {
     voxel_manager: VoxelManager,
-    mesh: Arc<Mutex<Mesh>>,
     target: Option<(usize, usize)>,
     ghost: Arc<Mutex<Option<Mesh>>>,
     bounding_box: Arc<Mutex<Mesh>>,
@@ -111,11 +110,7 @@ struct App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         //update mesh
-        let update = self.voxel_manager.update();
-        if update {
-            self.mesh = Arc::new(Mutex::new(self.voxel_manager.get_mesh(_frame.gl().unwrap())));
-        }
-        // self.mesh.lock().unwrap().load_buffers(_frame.gl().unwrap());
+        let update = self.voxel_manager.update(_frame.gl().unwrap());
 
         // raycast
 
@@ -189,16 +184,15 @@ Made by [Saahil Gupta](https://www.saahil-gupta.com)
                                 continue;
                             }
 
-                            let tgt = (x as i32 + dx, 29, z as i32 + dz);
+                            let tgt = (x as i32 + dx, 9, z as i32 + dz);
 
-                            if tgt.0 < 0 || tgt.0 >= 50 || tgt.2 < 0 || tgt.2 >= 50 {
+                            if tgt.0 < 0 || tgt.0 >= 10 || tgt.2 < 0 || tgt.2 >= 10 {
                                 continue;
                             }
 
-                            self.voxel_manager.voxels[tgt.0 as usize][29][tgt.2 as usize] = Some(VoxelManager::colors()[random::<usize>() % VoxelManager::colors().len()]);
+                            self.voxel_manager.voxels[tgt.0 as usize][9][tgt.2 as usize] = Some(VoxelManager::colors()[random::<usize>() % VoxelManager::colors().len()]);
                         }
                     }
-
                 },
                 None => ()
             }
@@ -262,8 +256,7 @@ impl App {
             .as_ref()
             .expect("You need to run eframe with the glow backend");
 
-        let voxel_manager = VoxelManager::new(50, 50, 30);
-        let mesh = voxel_manager.get_mesh(gl);
+        let voxel_manager = VoxelManager::new(10, 10, 10, gl);
         let bounding_box = voxel_manager.get_bounding_box(gl);
 
         let shader_program = ShaderProgram::new(gl, "src/main.vert.glsl", "src/main.frag.glsl");
@@ -272,7 +265,6 @@ impl App {
         
         Self { 
             voxel_manager, 
-            mesh: Arc::new(Mutex::new(mesh)),
             target: None,
             ghost: Arc::new(Mutex::new(None)),
             bounding_box: Arc::new(Mutex::new(bounding_box)),
@@ -294,12 +286,12 @@ impl App {
 
 
         let shader_program = self.shader_program.clone();
-        let mesh = self.mesh.clone();
+        let mesh = self.voxel_manager.mesh.clone();
         let ghost = self.ghost.clone();
         let bounding_box = self.bounding_box.clone();
         let camera = self.camera.clone();
 
-        if ui.ctx().input(|i| i.modifiers.shift || i.modifiers.alt) {     
+        if ui.ctx().input(|i| i.modifiers.shift || i.modifiers.alt) {
             self.angle.2 += response.drag_delta().y * 0.4;
             self.angle.1 += response.drag_delta().x * -0.4;
             self.angle.1 = (self.angle.1 + 360.0) % 360.0;
@@ -315,7 +307,7 @@ impl App {
         let callback = egui::PaintCallback {
             rect,
             callback: std::sync::Arc::new(egui_glow::CallbackFn::new(move |_info: egui::PaintCallbackInfo, painter| {
-                shader_program.lock().unwrap().paint(painter.gl(), &mesh.lock().unwrap(), &ghost.lock().unwrap(), &bounding_box.lock().unwrap(),  &camera.lock().unwrap());
+                shader_program.lock().unwrap().paint(painter.gl(), &mesh, &ghost.lock().unwrap(), &bounding_box.lock().unwrap(),  &camera.lock().unwrap());
             })),
         };
         ui.painter().add(callback);
