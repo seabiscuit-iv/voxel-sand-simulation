@@ -200,7 +200,7 @@ impl VoxelManager {
         let uvs = (0..count).into_iter().map(|x| {
             Vector2::new(0.0, 0.0)
         }).collect();
-
+        
         Mesh::new(gl, verts, (0..count).into_iter().map(|x| x as u32).collect(), uvs, false, colors)
     }
 

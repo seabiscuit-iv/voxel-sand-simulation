@@ -141,6 +141,7 @@ impl eframe::App for App {
             // });
 
             ui.collapsing("Help", |ui| {
+                ui.label(format!("Num Verts: {}", self.mesh.lock().unwrap().positions.len()));
 
                 let markdown_text =
                 r"
